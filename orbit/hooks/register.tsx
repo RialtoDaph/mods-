@@ -196,8 +196,8 @@ const sweepSvg = (t: number, color: string, w: number, h = 6) => {
 }
 
 const dotsSvg = (filled: number, total: number, color: string) => {
-  const r = 3.2
-  const step = 9
+  const r = 2.4
+  const step = 6.5
   let body = ''
   for (let i = 0; i < total; i++) {
     const isOn = i < filled
@@ -208,8 +208,8 @@ const dotsSvg = (filled: number, total: number, color: string) => {
 
 const gridSvg = (frac: number, cols: number, color: string) => {
   const rows = 2
-  const r = 3.4
-  const step = 10
+  const r = 2.4
+  const step = 7
   const on = Math.round(clamp01(frac) * cols)
   let body = ''
   for (let c = 0; c < cols; c++) {
@@ -221,11 +221,11 @@ const gridSvg = (frac: number, cols: number, color: string) => {
 }
 
 const idleSvg = (frac: number, w: number) => {
-  const h = 14
-  const solid = clamp01(frac) * (w - 14)
-  let body = `<rect y="${h / 2 - 3}" width="${Math.max(6, solid)}" height="6" rx="3" fill="${frac >= 1 ? BLUE : RED}"/>`
-  for (let x = solid + 10; x < w - 16; x += 11) body += `<circle cx="${x}" cy="${h / 2}" r="2" fill="${DOT}"/>`
-  body += `<circle cx="${w - 8}" cy="${h / 2}" r="5.5" fill="none" stroke="${BLUE}" stroke-width="2"/>`
+  const h = 10
+  const solid = clamp01(frac) * (w - 10)
+  let body = `<rect y="${h / 2 - 2}" width="${Math.max(4, solid)}" height="4" rx="2" fill="${frac >= 1 ? BLUE : RED}"/>`
+  for (let x = solid + 8; x < w - 12; x += 8) body += `<circle cx="${x}" cy="${h / 2}" r="1.5" fill="${DOT}"/>`
+  body += `<circle cx="${w - 5}" cy="${h / 2}" r="3.8" fill="none" stroke="${BLUE}" stroke-width="1.6"/>`
   return svg(w, h, body)
 }
 
@@ -779,7 +779,7 @@ export const register: Register = (on, options) => {
             <Text dimColor> tokens</Text>
           </Text>
           {Svg
-            ? pic('cache-grid', gridSvg(pct / 100, Math.max(8, Math.min(22, Math.floor(colPx / 10))), fill), `${pct}% of context`)
+            ? pic('cache-grid', gridSvg(pct / 100, Math.max(10, Math.min(30, Math.floor(colPx / 7))), fill), `${pct}% of context`)
             : <Text color={fill}>{textDots(Math.round(pct / 10), 10)}</Text>}
           <Text wrap="truncate-end">
             <Text dimColor>
@@ -825,7 +825,7 @@ export const register: Register = (on, options) => {
       )
 
       const grid = (
-        <Box key="grid" flexDirection="row" columnGap={2}>
+        <Box key="grid" flexDirection="row" columnGap={2} marginTop={1}>
           {idleCol}
           {cacheCol}
           {nextCol}
