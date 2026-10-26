@@ -36,7 +36,7 @@ const CARD = '#27272a'
 const BODY = '#e07a5f'
 
 // Roughly how many CSS pixels one layout cell is on the desktop surface.
-const PX = 7
+const PX = 6
 
 const mission = atom({ plugin: 'orbit', key: 'mission' } as const, null)
 const tick = atom({ plugin: 'orbit', key: 'tick' } as const, 0)
@@ -742,7 +742,115 @@ export const register: Register = (on, options) => {
       const isBig = inCache >= BIG_CONTEXT
       const fill = fillColor(pct)
       const maxUsd = Math.max(...costs.map(c => c.usd), 0.0001)
-      const colW = Math.max(18, Math.floor((cols - 6) / 3))
+      // Three columns when there is room, two plus a row when a sidebar narrows
+      // the band, everything stacked when it is narrower still.
+      const layout = cols >= 100 ? 'wide' : cols >= 64 ? 'medium' : 'narrow'
+      const colW =
+        layout === 'wide' ? Math.floor((cols - 6) / 3) : layout === 'medium' ? Math.floor((cols - 4) / 2) : cols - 2
+      const colPx = Math.max(90, Math.min(300, colW * PX))
+
+      const idleCol = (
+        <Box key="idle" flexDirection="column" flexGrow={1} flexShrink={1}>
+          <Text dimColor bold size="caption">
+            IDLE
+          </Text>
+          <Text bold size="title">
+            {replyAt === null ? '—' : fmtSpan(idle)}
+          </Text>
+          {Svg
+            ? pic('idle-bar', idleSvg(idle / CACHE_TTL_MS, colPx), 'idle')
+            : <Text color={RED}>{textBar(idle / CACHE_TTL_MS, Math.max(6, Math.min(16, colW - 2)))}</Text>}
+          <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
+            <Text dimColor>last reply</Text>
+            <Text color={BLUE}>{isWarm ? `cold in ${fmtSpan(warmLeft)}` : 'cold'}</Text>
+          </Box>
+          {replyAt !== null && inCache > 0 && (
+            <Text dimColor>
+              {isWarm ? 'cold restart' : 'rewrite cost'} {euro(coldUsd).replace('≈', '')}
+            </Text>
+          )}
+        </Box>
+      )
+
+      const cacheCol = (
+        <Box key="cache" flexDirection="column" flexGrow={1} flexShrink={1}>
+          <Text dimColor bold size="caption">
+            IN CACHE
+          </Text>
+          <Text>
+            <Text bold size="title">
+              {fmtTokens(inCache)}
+            </Text>
+            <Text dimColor> tokens</Text>
+          </Text>
+          {Svg
+            ? pic('cache-grid', gridSvg(pct / 100, Math.max(8, Math.min(24, Math.floor(colPx / 10))), fill), `${pct}% of context`)
+            : <Text color={fill}>{textDots(Math.round(pct / 10), 10)}</Text>}
+          <Text dimColor>
+            {pct}% of the {fmtTokens(window).toUpperCase()} context
+          </Text>
+          {pct >= 30 && (
+            <Text color={fill}>{pct >= 50 ? 'heavy: /compact soon' : 'growing: /compact when done'}</Text>
+          )}
+        </Box>
+      )
+
+      const nextCol = (
+        <Box key="next" flexDirection="column" flexGrow={1} flexShrink={1}>
+          <Text dimColor bold size="caption">
+            NEXT MESSAGE, {isWarm ? 'CACHED' : 'COLD'}
+          </Text>
+          {layout === 'narrow' ? (
+            <Text>
+              {costs.map((c, i) => (
+                <Text key={c.name} bold={c.name === family} color={c.name === family ? RED : undefined} dimColor={c.name !== family}>
+                  {i > 0 ? ' · ' : ''}
+                  {c.name.charAt(0) + c.name.slice(1).toLowerCase()} {euro(c.usd).replace('≈', '')}
+                </Text>
+              ))}
+            </Text>
+          ) : (
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+              {costs.map(c => (
+                <Box key={c.name} flexDirection="row" columnGap={1} alignItems="flex-end">
+                  {pic(`tower-${c.name}`, towerSvg(c.usd / maxUsd, c.name === family ? RED : '#a1a1aa'), c.name)}
+                  <Box flexDirection="column">
+                    <Text bold={c.name === family} dimColor={c.name !== family}>
+                      {euro(c.usd).replace('≈', '')}
+                    </Text>
+                    <Text size="caption" bold color={c.name === family ? RED : undefined} dimColor={c.name !== family}>
+                      {c.name}
+                    </Text>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )
+
+      const grid =
+        layout === 'wide' ? (
+          <Box key="grid" flexDirection="row" columnGap={2} marginTop={1}>
+            {idleCol}
+            {cacheCol}
+            {nextCol}
+          </Box>
+        ) : layout === 'medium' ? (
+          <Box key="grid" flexDirection="column" rowGap={1} marginTop={1}>
+            <Box flexDirection="row" columnGap={2}>
+              {idleCol}
+              {cacheCol}
+            </Box>
+            {nextCol}
+          </Box>
+        ) : (
+          <Box key="grid" flexDirection="column" rowGap={1} marginTop={1}>
+            {idleCol}
+            {cacheCol}
+            {nextCol}
+          </Box>
+        )
       const current = costs.find(c => c.name === family) ?? costs[0]
 
       card = isMin ? (
@@ -832,70 +940,7 @@ export const register: Register = (on, options) => {
           </Box>
           </Box>
 
-          <Box flexDirection="row" columnGap={2} marginTop={1}>
-            <Box key="idle" flexDirection="column" flexGrow={1}>
-              <Text dimColor bold size="caption">
-                IDLE
-              </Text>
-              <Text bold size="title">
-                {replyAt === null ? '—' : fmtSpan(idle)}
-              </Text>
-              {Svg
-                ? pic('idle-bar', idleSvg(idle / CACHE_TTL_MS, colW * PX), 'idle')
-                : <Text color={RED}>{textBar(idle / CACHE_TTL_MS, Math.min(16, colW - 2))}</Text>}
-              <Box flexDirection="row" justifyContent="space-between">
-                <Text dimColor>last reply</Text>
-                <Text color={BLUE}>{isWarm ? `cold in ${fmtSpan(warmLeft)}` : 'cold'}</Text>
-              </Box>
-              {replyAt !== null && inCache > 0 && (
-                <Text dimColor>
-                  {isWarm ? 'cold restart' : 'rewrite cost'} {euro(coldUsd).replace('≈', '')}
-                </Text>
-              )}
-            </Box>
-
-            <Box key="cache" flexDirection="column" flexGrow={1}>
-              <Text dimColor bold size="caption">
-                IN CACHE
-              </Text>
-              <Text>
-                <Text bold size="title">
-                  {fmtTokens(inCache)}
-                </Text>
-                <Text dimColor> tokens</Text>
-              </Text>
-              {Svg
-                ? pic('cache-grid', gridSvg(pct / 100, Math.max(10, Math.floor((colW * PX) / 10)), fill), `${pct}% of context`)
-                : <Text color={fill}>{textDots(Math.round(pct / 10), 10)}</Text>}
-              <Text dimColor>
-                {pct}% of the {fmtTokens(window).toUpperCase()} context
-              </Text>
-              {pct >= 30 && (
-                <Text color={fill}>{pct >= 50 ? 'heavy: /compact soon' : 'growing: /compact when done'}</Text>
-              )}
-            </Box>
-
-            <Box key="next" flexDirection="column" flexGrow={1}>
-              <Text dimColor bold size="caption">
-                NEXT MESSAGE, {isWarm ? 'CACHED' : 'COLD'}
-              </Text>
-              <Box flexDirection="row" columnGap={1} marginTop={1}>
-                {costs.map(c => (
-                  <Box key={c.name} flexDirection="row" columnGap={1} alignItems="flex-end">
-                    {pic(`tower-${c.name}`, towerSvg(c.usd / maxUsd, c.name === family ? RED : '#a1a1aa'), c.name)}
-                    <Box flexDirection="column">
-                      <Text bold={c.name === family} dimColor={c.name !== family}>
-                        {euro(c.usd).replace('≈', '')}
-                      </Text>
-                      <Text size="caption" bold color={c.name === family ? RED : undefined} dimColor={c.name !== family}>
-                        {c.name}
-                      </Text>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          </Box>
+          {grid}
           {!isWarm && isBig && (
             <Box key="advice" marginTop={1}>
               <Text color={BLUE}>

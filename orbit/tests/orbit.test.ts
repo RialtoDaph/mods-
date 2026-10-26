@@ -158,13 +158,30 @@ test('the usage card shows limits, a warm cache and next-message costs', async (
     expect(await band.find({ text: 'OPUS' })).toBeDefined()
     expect(await band.find({ text: /cold restart/ })).toBeDefined()
 
-    await band.press({ key: 'min-usage' })
-    expect(await band.find({ text: 'USAGE' })).toBeDefined()
-    expect(await band.find({ text: /182k cached/ })).toBeDefined()
-    expect(await band.find({ text: 'IDLE' })).toBeUndefined()
-    await band.press({ key: 'expand-usage' })
-    expect(await band.find({ text: 'IDLE' })).toBeDefined()
     await band.unmount()
+
+    // A sidebar narrows the band: two columns, then everything stacked.
+    for (const bodyColumns of [80, 50]) {
+      const narrow = await $.ui.mount({
+        plugin: 'orbit',
+        surface,
+        component: 'AbovePrompt',
+        props: { ...BAND_PROPS, bodyColumns },
+      })
+      expect(await narrow.find({ text: 'IDLE' })).toBeDefined()
+      expect(await narrow.find({ text: /182k/ })).toBeDefined()
+      expect(await narrow.find({ text: bodyColumns < 64 ? /Opus €/ : 'OPUS' })).toBeDefined()
+      await narrow.unmount()
+    }
+
+    const again = await $.ui.mount({ plugin: 'orbit', surface, component: 'AbovePrompt', props: BAND_PROPS })
+    await again.press({ key: 'min-usage' })
+    expect(await again.find({ text: 'USAGE' })).toBeDefined()
+    expect(await again.find({ text: /182k cached/ })).toBeDefined()
+    expect(await again.find({ text: 'IDLE' })).toBeUndefined()
+    await again.press({ key: 'expand-usage' })
+    expect(await again.find({ text: 'IDLE' })).toBeDefined()
+    await again.unmount()
   }
 })
 
