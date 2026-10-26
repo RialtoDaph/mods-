@@ -38,3 +38,9 @@ claude plugin install orbit --marketplace RialtoDaph/mods-
 ```
 
 In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `RialtoDaph/mods-`, then **Add plugin**.
+
+### In a project's cloud sessions
+
+Cloud sessions run from the project's repository, not from your machine, so the mod is enabled in the project itself: copy [`install/project-settings.json`](install/project-settings.json) into the project as `.claude/settings.json` (merge it into the file if one exists) and commit it to the branch the cloud sessions start from.
+
+Untested so far: whether a cloud session can read this marketplace while the repository is private, and whether Orbit's panels draw there as they do locally.

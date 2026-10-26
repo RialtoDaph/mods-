@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "rialtodaph-mods": {
+      "source": { "source": "github", "repo": "RialtoDaph/mods-" }
+    }
+  },
+  "enabledPlugins": {
+    "orbit@rialtodaph-mods": true
+  }
+}
