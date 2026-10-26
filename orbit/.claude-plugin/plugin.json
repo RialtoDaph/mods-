@@ -1,0 +1,21 @@
+{
+  "name": "orbit",
+  "version": "0.1.0",
+  "description": "Mission Control for Claude: a progress band above the prompt and a sidebar of agents, tasks, tokens and cost in euro.",
+  "author": { "name": "Rialto Effendy" },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "eurRate": {
+      "type": "number",
+      "title": "USD to EUR rate",
+      "description": "How many euro one US dollar is worth; costs are shown as estimates at this rate.",
+      "default": 0.92
+    },
+    "playSound": {
+      "type": "boolean",
+      "title": "Chime when a mission completes",
+      "description": "Play a short chime when every agent and task has finished.",
+      "default": true
+    }
+  }
+}

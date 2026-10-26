@@ -1,0 +1,11 @@
+{
+  "name": "rialtodaph-mods",
+  "owner": { "name": "Rialto Effendy" },
+  "plugins": [
+    {
+      "name": "orbit",
+      "source": "./orbit",
+      "description": "Mission Control for Claude Code: a usage card and progress strip above the prompt, and an Agents sidebar with pixel mascots, tokens and cost in euro."
+    }
+  ]
+}
