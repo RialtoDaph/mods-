@@ -742,33 +742,28 @@ export const register: Register = (on, options) => {
       const isBig = inCache >= BIG_CONTEXT
       const fill = fillColor(pct)
       const maxUsd = Math.max(...costs.map(c => c.usd), 0.0001)
-      // Three columns when there is room, two plus a row when a sidebar narrows
-      // the band, everything stacked when it is narrower still.
+      // Three columns side by side whenever they fit; a sidebar only makes them
+      // tighter. Below that the card shows as its one-line summary.
       const layout = cols >= 100 ? 'wide' : cols >= 64 ? 'medium' : 'narrow'
-      const colW =
-        layout === 'wide' ? Math.floor((cols - 6) / 3) : layout === 'medium' ? Math.floor((cols - 4) / 2) : cols - 2
-      const colPx = Math.max(90, Math.min(300, colW * PX))
+      const colW = Math.floor((cols - 6) / 3)
+      const colPx = Math.max(80, Math.min(layout === 'wide' ? 240 : 170, colW * PX))
+      const restart = euro(coldUsd).replace('≈', '')
 
       const idleCol = (
         <Box key="idle" flexDirection="column" flexGrow={1} flexShrink={1}>
           <Text dimColor bold size="caption">
             IDLE
           </Text>
-          <Text bold size="title">
+          <Text bold size="heading">
             {replyAt === null ? '—' : fmtSpan(idle)}
           </Text>
           {Svg
             ? pic('idle-bar', idleSvg(idle / CACHE_TTL_MS, colPx), 'idle')
-            : <Text color={RED}>{textBar(idle / CACHE_TTL_MS, Math.max(6, Math.min(16, colW - 2)))}</Text>}
-          <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
-            <Text dimColor>last reply</Text>
+            : <Text color={RED}>{textBar(idle / CACHE_TTL_MS, Math.max(6, Math.min(14, colW - 2)))}</Text>}
+          <Text wrap="truncate-end">
             <Text color={BLUE}>{isWarm ? `cold in ${fmtSpan(warmLeft)}` : 'cold'}</Text>
-          </Box>
-          {replyAt !== null && inCache > 0 && (
-            <Text dimColor>
-              {isWarm ? 'cold restart' : 'rewrite cost'} {euro(coldUsd).replace('≈', '')}
-            </Text>
-          )}
+            {replyAt !== null && inCache > 0 && <Text dimColor> · restart {restart}</Text>}
+          </Text>
         </Box>
       )
 
@@ -778,39 +773,30 @@ export const register: Register = (on, options) => {
             IN CACHE
           </Text>
           <Text>
-            <Text bold size="title">
+            <Text bold size="heading">
               {fmtTokens(inCache)}
             </Text>
             <Text dimColor> tokens</Text>
           </Text>
           {Svg
-            ? pic('cache-grid', gridSvg(pct / 100, Math.max(8, Math.min(24, Math.floor(colPx / 10))), fill), `${pct}% of context`)
+            ? pic('cache-grid', gridSvg(pct / 100, Math.max(8, Math.min(22, Math.floor(colPx / 10))), fill), `${pct}% of context`)
             : <Text color={fill}>{textDots(Math.round(pct / 10), 10)}</Text>}
-          <Text dimColor>
-            {pct}% of the {fmtTokens(window).toUpperCase()} context
+          <Text wrap="truncate-end">
+            <Text dimColor>
+              {pct}% of {fmtTokens(window).toUpperCase()}
+            </Text>
+            {pct >= 30 && <Text color={fill}> · {pct >= 50 ? '/compact soon' : '/compact when done'}</Text>}
           </Text>
-          {pct >= 30 && (
-            <Text color={fill}>{pct >= 50 ? 'heavy: /compact soon' : 'growing: /compact when done'}</Text>
-          )}
         </Box>
       )
 
       const nextCol = (
         <Box key="next" flexDirection="column" flexGrow={1} flexShrink={1}>
           <Text dimColor bold size="caption">
-            NEXT MESSAGE, {isWarm ? 'CACHED' : 'COLD'}
+            NEXT MSG, {isWarm ? 'CACHED' : 'COLD'}
           </Text>
-          {layout === 'narrow' ? (
-            <Text>
-              {costs.map((c, i) => (
-                <Text key={c.name} bold={c.name === family} color={c.name === family ? RED : undefined} dimColor={c.name !== family}>
-                  {i > 0 ? ' · ' : ''}
-                  {c.name.charAt(0) + c.name.slice(1).toLowerCase()} {euro(c.usd).replace('≈', '')}
-                </Text>
-              ))}
-            </Text>
-          ) : (
-            <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+          {layout === 'wide' ? (
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
               {costs.map(c => (
                 <Box key={c.name} flexDirection="row" columnGap={1} alignItems="flex-end">
                   {pic(`tower-${c.name}`, towerSvg(c.usd / maxUsd, c.name === family ? RED : '#a1a1aa'), c.name)}
@@ -825,35 +811,31 @@ export const register: Register = (on, options) => {
                 </Box>
               ))}
             </Box>
+          ) : (
+            costs.map(c => (
+              <Text key={c.name} wrap="truncate-end">
+                <Text bold={c.name === family} color={c.name === family ? RED : undefined} dimColor={c.name !== family}>
+                  {euro(c.usd).replace('≈', '')}
+                </Text>
+                <Text dimColor> {c.name.charAt(0) + c.name.slice(1).toLowerCase()}</Text>
+              </Text>
+            ))
           )}
         </Box>
       )
 
-      const grid =
-        layout === 'wide' ? (
-          <Box key="grid" flexDirection="row" columnGap={2} marginTop={1}>
-            {idleCol}
-            {cacheCol}
-            {nextCol}
-          </Box>
-        ) : layout === 'medium' ? (
-          <Box key="grid" flexDirection="column" rowGap={1} marginTop={1}>
-            <Box flexDirection="row" columnGap={2}>
-              {idleCol}
-              {cacheCol}
-            </Box>
-            {nextCol}
-          </Box>
-        ) : (
-          <Box key="grid" flexDirection="column" rowGap={1} marginTop={1}>
-            {idleCol}
-            {cacheCol}
-            {nextCol}
-          </Box>
-        )
+      const grid = (
+        <Box key="grid" flexDirection="row" columnGap={2}>
+          {idleCol}
+          {cacheCol}
+          {nextCol}
+        </Box>
+      )
       const current = costs.find(c => c.name === family) ?? costs[0]
 
-      card = isMin ? (
+      // Too narrow for three columns: the one-line summary, with no way to grow.
+      const isForcedMin = layout === 'narrow'
+      card = isMin || isForcedMin ? (
         <Box
           key="usage"
           flexDirection="row"
@@ -895,7 +877,9 @@ export const register: Register = (on, options) => {
           {!isWarm && isBig && <Text color={BLUE}>/compact or /clear first</Text>}
           </Box>
           <Box key="corner" flexShrink={0} alignSelf="flex-start" marginLeft={1}>
-            <Button key="expand-usage" label="+" plain onPress={() => update($, isUsageMinimized, () => false)} />
+            {!isForcedMin && (
+              <Button key="expand-usage" label="+" plain onPress={() => update($, isUsageMinimized, () => false)} />
+            )}
           </Box>
         </Box>
       ) : (

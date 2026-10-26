@@ -154,9 +154,9 @@ test('the usage card shows limits, a warm cache and next-message costs', async (
     expect(await band.find({ text: /27m left/ })).toBeDefined()
     expect(await band.find({ text: /^33m$/ })).toBeDefined()
     expect(await band.find({ text: /182k/ })).toBeDefined()
-    expect(await band.find({ text: /18% of the 1M context/ })).toBeDefined()
+    expect(await band.find({ text: /18% of 1M/ })).toBeDefined()
     expect(await band.find({ text: 'OPUS' })).toBeDefined()
-    expect(await band.find({ text: /cold restart/ })).toBeDefined()
+    expect(await band.find({ text: /restart €/ })).toBeDefined()
 
     await band.unmount()
 
@@ -168,9 +168,14 @@ test('the usage card shows limits, a warm cache and next-message costs', async (
         component: 'AbovePrompt',
         props: { ...BAND_PROPS, bodyColumns },
       })
-      expect(await narrow.find({ text: 'IDLE' })).toBeDefined()
       expect(await narrow.find({ text: /182k/ })).toBeDefined()
-      expect(await narrow.find({ text: bodyColumns < 64 ? /Opus €/ : 'OPUS' })).toBeDefined()
+      if (bodyColumns >= 64) {
+        expect(await narrow.find({ text: 'IDLE' })).toBeDefined()
+        expect(await narrow.find({ text: /Opus/ })).toBeDefined()
+      } else {
+        expect(await narrow.find({ text: /182k cached/ })).toBeDefined()
+        expect(await narrow.find({ text: 'IDLE' })).toBeUndefined()
+      }
       await narrow.unmount()
     }
 
@@ -207,7 +212,7 @@ test('a cold, heavy cache says what continuing costs and what to do', async ($, 
   for (const surface of SURFACES) {
     const band = await $.ui.mount({ plugin: 'orbit', surface, component: 'AbovePrompt', props: BAND_PROPS })
     expect(await band.find({ text: /COLD/ })).toBeDefined()
-    expect(await band.find({ text: /heavy: \/compact soon/ })).toBeDefined()
+    expect(await band.find({ text: /\/compact soon/ })).toBeDefined()
     expect(await band.find({ text: /Cold cache, 600k in context/ })).toBeDefined()
     await band.unmount()
   }
